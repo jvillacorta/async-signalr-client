@@ -8,4 +8,4 @@ class InvocationMessage(BaseSignalRMessage):
         super().__init__(SignalRMessageType.INVOCATION)
         self.invocation_id = invocation_id
         self.target = target
-        self.target = arguments
+        self.arguments = arguments

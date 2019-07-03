@@ -1,4 +1,3 @@
-import typing
 from client.models.messages.base import BaseSignalRMessage
 from client.models.messages.types import SignalRMessageType
 

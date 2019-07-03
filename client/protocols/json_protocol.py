@@ -5,6 +5,13 @@ from client import models, protocols, exceptions
 
 class JsonEncoder(json.JSONEncoder):
     def default(self, obj):
+        # Return Message Type Integer
+        if isinstance(obj, models.SignalRMessageType):
+            return obj.value
+        # Normalize Invocation Id Property
+        if "invocation_id" in obj.__dict__:
+            obj.__dict__["invocationId"] = obj.__dict__["invocation_id"]
+            del obj.__dict__["invocation_id"]
         return obj.__dict__
 
 

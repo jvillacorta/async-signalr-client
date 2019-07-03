@@ -30,6 +30,8 @@ class Connection:
         self.url = url
         self.protocol = protocol
         self._state = SignalRConnectionState.OFFLINE
+        self.establishing_connection_lock = asyncio.Lock()
+        self.connection_established = asyncio.Future()
         # Setup Logger
         self.logger = logging.getLogger("AsyncSignalRClient")
         t = logging.StreamHandler()
@@ -45,9 +47,10 @@ class Connection:
         Connects to SignalR Server
         """
         if self.state == SignalRConnectionState.OFFLINE:
-            self.ws: websockets.WebSocketClientProtocol = await websockets.connect(self.url)
-            self._state = SignalRConnectionState.CONNECTING
-            await self.ws.send(self.protocol.encode(self.protocol.handshake_message()))
+            async with self.establishing_connection_lock:
+                self.ws: websockets.WebSocketClientProtocol = await websockets.connect(self.url)
+                self._state = SignalRConnectionState.CONNECTING
+                await self.ws.send(self.protocol.encode(self.protocol.handshake_message()))
 
     async def start(self):
         """
@@ -80,5 +83,14 @@ class Connection:
                 raise SignalRConnectionError(message.error)
             else:
                 self._state = SignalRConnectionState.ONLINE
+                self.connection_established.set_result(SignalRConnectionState.ONLINE)
         else:
             message: models.BaseSignalRMessage = self.protocol.decode(packet)
+
+    async def invoke(self, target, *args):
+        message = models.InvocationMessage(invocation_id=str(uuid.uuid4()),
+                                           target=target,
+                                           arguments=list(args))
+        encoded_message = self.protocol.encode(message)
+        self.logger.info(f"INVOKE: {encoded_message}")
+        await self.ws.send(encoded_message)
