@@ -1,4 +1,3 @@
-import json
 import time
 import uuid
 import random
@@ -22,6 +21,8 @@ class SignalRConnectionState(Enum):
 
 
 class Connection:
+    handler_prefix = 'on_'
+
     def __init__(self,
                  url: str,
                  protocol: protocols.BaseSignalRProtocol = protocols.JsonProtocol(),
@@ -36,6 +37,13 @@ class Connection:
         self.connection_established = asyncio.Future()  # Future set when connection and negotiation finishes
         self._completion_futures: typing.Dict[str, models.InvokeCompletionFuture] = dict()
 
+        # Register handlers
+        self._handlers = dict()
+        for x in dir(self):
+            if x.startswith(self.handler_prefix):
+                event = x[len(self.handler_prefix):]
+                self._handlers[event] = [getattr(self, x)]
+
         # Setup Logger
         self.logger = logging.getLogger("AsyncSignalRClient")
         t = logging.StreamHandler()
@@ -45,6 +53,15 @@ class Connection:
     @property
     def state(self) -> SignalRConnectionState:
         return self._state
+
+    async def call_handlers(self, message: models.InvocationMessage):
+        handlers = self._handlers.get(message.target)
+        if not handlers:
+            self.logger.warning(f"Unable to find handler for event: {message.target}")
+        else:
+            loop = asyncio.get_event_loop()
+            for handler in handlers:
+                loop.create_task(handler(*message.arguments))
 
     def register_completion_futures(self, completion_future: models.InvokeCompletionFuture):
         if completion_future.invocation_id in self._completion_futures:
@@ -59,7 +76,7 @@ class Connection:
             self.logger.warning(f"Completion Future for InvocationId:{completion_message.invocation_id} not found...")
         else:
             if completion_message.error:
-                completion_future.set_exception(exceptions.SignalRCompletionServerError(completion_message.error))
+                raise exceptions.SignalRCompletionServerError(completion_message.error)
             else:
                 completion_future.set_result(completion_message.result)
 
@@ -124,7 +141,11 @@ class Connection:
                 self.connection_established.set_result(SignalRConnectionState.ONLINE)
         else:
             message: models.BaseSignalRMessage = self.protocol.parse(packet)
-            if message.type is models.SignalRMessageType.COMPLETION:
+            if message.type is models.SignalRMessageType.INVOCATION:
+                message: models.InvocationMessage
+                self.logger.info(f"INVOKE: {message}")
+                await self.call_handlers(message)
+            elif message.type is models.SignalRMessageType.COMPLETION:
                 message: models.CompletionMessage
                 self.logger.info(f"COMPLETION: {message}")
                 self.set_completion(message)
@@ -145,3 +166,9 @@ class Connection:
         self.logger.info(f"INVOKE: {encoded_message}")
         await self.ws.send(encoded_message)
         return ret
+
+    def on(self, event: str, callback: typing.Coroutine):
+        if event not in self._handlers:
+            self._handlers[event] = [callback]
+        else:
+            self._handlers[event].append(callback)
