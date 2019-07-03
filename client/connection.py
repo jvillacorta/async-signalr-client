@@ -139,6 +139,7 @@ class Connection:
             else:
                 self._state = SignalRConnectionState.ONLINE
                 self.connection_established.set_result(SignalRConnectionState.ONLINE)
+                await self.on_start()
         else:
             message: models.BaseSignalRMessage = self.protocol.parse(packet)
             if message.type is models.SignalRMessageType.INVOCATION:
@@ -149,6 +150,12 @@ class Connection:
                 message: models.CompletionMessage
                 self.logger.info(f"COMPLETION: {message}")
                 self.set_completion(message)
+
+    async def on_start(self):
+        """
+        Called when connection is established
+        """
+        pass
 
     async def invoke(self, target: str, *args: typing.Any) -> models.InvokeCompletionFuture:
         """
