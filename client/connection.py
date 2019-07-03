@@ -25,10 +25,12 @@ class Connection:
     def __init__(self,
                  url: str,
                  protocol: protocols.BaseSignalRProtocol = protocols.JsonProtocol(),
+                 connection_timeout: int = 20,
                  log_level: int = logging.DEBUG):
         self.ws = None  # Will hold reference to the websocket client
         self.url = url
         self.protocol = protocol
+        self.connection_timeout = connection_timeout
         self._state = SignalRConnectionState.OFFLINE  # Controls the state of the client
         self.establishing_connection_lock = asyncio.Lock()
         self.connection_established = asyncio.Future()  # Future set when connection and negotiation finishes
@@ -74,11 +76,22 @@ class Connection:
     async def start(self):
         """
         Starts SignalR Connection and Processing
-        - When starting the client it is recommended to wait for self.connection_established
-          before executing any request
         """
         # INITIALIZING THE CONNECTION
         await self.connect()
+        loop = asyncio.get_event_loop()
+        loop.create_task(self.process())
+        try:
+            await asyncio.wait_for(self.connection_established, self.connection_timeout)
+        except asyncio.TimeoutError:
+            raise exceptions.SignalRConnectionError(f"Unable to connect to {self.url} after a"
+                                                    f"{self.connection_timeout} seconds timeout")
+
+    async def process(self):
+        """
+        Listens for incoming payloads dispatches a new task for each full message received
+        """
+        loop = asyncio.get_event_loop()
         buffer = StringIO()
         while True:
             try:
@@ -86,7 +99,7 @@ class Connection:
                 data = await asyncio.wait_for(self.ws.recv(), 0.1)
                 for _char in data:
                     if _char == self.protocol.separator:
-                        await self._execute(buffer.getvalue())
+                        loop.create_task(self._execute(buffer.getvalue()))
                         buffer = StringIO()
                     else:
                         buffer.write(_char)
@@ -98,7 +111,10 @@ class Connection:
                 else:
                     raise exceptions.SignalRConnectionError(e.reason)
 
-    async def _execute(self, packet):
+    async def _execute(self, packet: str):
+        """
+        Executes actions based on message type
+        """
         if self.state is SignalRConnectionState.CONNECTING:
             message: models.HandshakeIncomingMessage = self.protocol.decode_handshake(packet)
             if message.error is not None:
@@ -113,7 +129,10 @@ class Connection:
                 self.logger.info(f"COMPLETION: {message}")
                 self.set_completion(message)
 
-    async def invoke(self, target, *args) -> models.InvokeCompletionFuture:
+    async def invoke(self, target: str, *args: typing.Any) -> models.InvokeCompletionFuture:
+        """
+        Sends Upstream Invokes with arguments
+        """
         # Assemble message
         message = models.InvocationMessage(invocation_id=str(uuid.uuid4()),
                                            target=target,
