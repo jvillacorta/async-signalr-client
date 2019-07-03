@@ -3,7 +3,7 @@ from .types import SignalRMessageType
 
 class BaseMessage:
     def __str__(self):
-        attrs = {f"{k}={v}" for k, v in self.__dict__}
+        attrs = {f"{k}={v}" for k, v in self.__dict__.items()}
         return f"{self.__class__}[{attrs}]"
 
 

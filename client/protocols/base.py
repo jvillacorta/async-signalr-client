@@ -1,4 +1,4 @@
-from client.models.messages.base import BaseSignalRMessage
+from client import models
 
 
 class BaseSignalRProtocol:
@@ -13,8 +13,11 @@ class BaseSignalRProtocol:
     def handshake_message(self):
         raise NotImplementedError("Implementation Required")
 
-    def decode(self, raw) -> BaseSignalRMessage:
+    def decode(self, raw) -> models.BaseSignalRMessage:
         raise NotImplementedError("Implementation Required")
 
-    def encode(self, message: BaseSignalRMessage):
+    def parse(self, raw) -> models.BaseSignalRMessage:
+        raise NotImplementedError("Implementation Required")
+
+    def encode(self, message: models.BaseSignalRMessage):
         raise NotImplementedError("Implementation Required")

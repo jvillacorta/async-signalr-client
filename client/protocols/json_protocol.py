@@ -1,4 +1,5 @@
 import json
+import traceback
 
 from client import models, protocols, exceptions
 
@@ -30,8 +31,11 @@ class JsonProtocol(protocols.BaseSignalRProtocol):
         return models.HandshakeOutgoingMessage(self.protocol, self.version)
 
     def decode(self, raw) -> dict:
-        clean = raw.replace(self.separator, "")
-        return json.loads(clean)
+        try:
+            clean = raw.replace(self.separator, "")
+            return json.loads(clean)
+        except:
+            raise exceptions.SignalRInvalidMessageError(f"Unable to decode message.\n{raw}")
 
     def parse(self, raw) -> models.BaseSignalRMessage:
         decoded_payload = self.decode(raw)
@@ -55,7 +59,7 @@ class JsonProtocol(protocols.BaseSignalRProtocol):
         elif message_type is models.SignalRMessageType.CANCEL_INVOCATION:
             pass  # TODO
         elif message_type is models.SignalRMessageType.PING:
-            pass  # TODO
+            return models.PingMessage()
         elif message_type is models.SignalRMessageType.CLOSE:
             pass  # TODO
 
