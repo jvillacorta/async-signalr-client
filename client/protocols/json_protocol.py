@@ -1,5 +1,4 @@
 import json
-import traceback
 
 from client import models, protocols, exceptions
 
@@ -34,7 +33,7 @@ class JsonProtocol(protocols.BaseSignalRProtocol):
         try:
             clean = raw.replace(self.separator, "")
             return json.loads(clean)
-        except:
+        except (TypeError, json.decoder.JSONDecodeError):
             raise exceptions.SignalRInvalidMessageError(f"Unable to decode message.\n{raw}")
 
     def parse(self, raw) -> models.BaseSignalRMessage:
@@ -49,19 +48,22 @@ class JsonProtocol(protocols.BaseSignalRProtocol):
                                             target=decoded_payload.get('target', None),
                                             arguments=decoded_payload.get('arguments', None))
         elif message_type is models.SignalRMessageType.STREAM_ITEM:
-            pass  # TODO
+            return models.StreamItemMessage(invocation_id=decoded_payload.get('invocationId', None),
+                                            item=decoded_payload.get('item', None))
         elif message_type is models.SignalRMessageType.COMPLETION:
             return models.CompletionMessage(invocation_id=decoded_payload.get('invocationId', None),
                                             result=decoded_payload.get('result', None),
                                             error=decoded_payload.get('error', None))
         elif message_type is models.SignalRMessageType.STREAM_INVOCATION:
-            pass  # TODO
+            return models.StreamInvocationMessage(invocation_id=decoded_payload.get('invocationId', None),
+                                                  target=decoded_payload.get('target', None),
+                                                  arguments=decoded_payload.get('arguments', None))
         elif message_type is models.SignalRMessageType.CANCEL_INVOCATION:
-            pass  # TODO
+            return models.CancelInvocationMessage(invocation_id=decoded_payload.get('invocationId', None))
         elif message_type is models.SignalRMessageType.PING:
             return models.PingMessage()
         elif message_type is models.SignalRMessageType.CLOSE:
-            pass  # TODO
+            return models.CloseMessage(error=decoded_payload.get('error', None))
 
     def encode(self, message: models.BaseMessage):
         return JsonEncoder().encode(message) + self.separator
