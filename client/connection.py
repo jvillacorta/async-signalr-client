@@ -1,15 +1,12 @@
-import time
 import uuid
-import random
 import typing
 import logging
 import asyncio
-import inspect
-import traceback
 import websockets
 from enum import Enum
 from io import StringIO
 
+from client.models import messages, futures
 from client import protocols, models, exceptions
 
 
@@ -36,7 +33,7 @@ class Connection:
         self._state = SignalRConnectionState.OFFLINE  # Controls the state of the client
         self.establishing_connection_lock = asyncio.Lock()
         self.connection_established = asyncio.Future()  # Future set when connection and negotiation finishes
-        self._completion_futures: typing.Dict[str, models.InvokeCompletionFuture] = dict()
+        self._completion_futures: typing.Dict[str, messages.InvokeCompletionFuture] = dict()
         self.stop_event = asyncio.Event()
 
         # Register handlers
@@ -54,9 +51,15 @@ class Connection:
 
     @property
     def state(self) -> SignalRConnectionState:
+        """
+        Current client state
+        """
         return self._state
 
-    async def call_handlers(self, message: models.InvocationMessage):
+    async def _call_handlers(self, message: messages.InvocationMessage):
+        """
+        Dispatches a task for each event handler registered to the client
+        """
         handlers = self._handlers.get(message.target)
         if not handlers:
             self.logger.warning(f"Unable to find handler for event: {message.target}")
@@ -65,22 +68,33 @@ class Connection:
             for handler in handlers:
                 loop.create_task(handler(*message.arguments))
 
-    def register_completion_futures(self, completion_future: models.InvokeCompletionFuture):
+    def _register_completion_futures(self, completion_future: futures.InvokeCompletionFuture):
+        """
+        Register the completion future for capturing the downstream result in the near future
+        """
         if completion_future.invocation_id in self._completion_futures:
             self.logger.warning(f"InvocationId:{completion_future.invocation_id} already registered...")
         else:
             self._completion_futures[completion_future.invocation_id] = completion_future
         return self._completion_futures.get(completion_future.invocation_id)
 
-    def set_completion(self, completion_message: models.CompletionMessage):
+    def _set_completion(self, completion_message: messages.CompletionMessage):
+        """
+        Allocates completion to a pending invocation if available
+        Note: An error in the completion message will cause a SignalRCompletionServerError exception to be raised
+        """
+        # Raise downstream error
+        if completion_message.error:
+            raise exceptions.SignalRCompletionServerError(completion_message.error)
+
+        # Locate completion future pointer
         completion_future = self._completion_futures.get(completion_message.invocation_id)
         if not completion_future:
             self.logger.warning(f"Completion Future for InvocationId:{completion_message.invocation_id} not found...")
         else:
-            if completion_message.error:
-                raise exceptions.SignalRCompletionServerError(completion_message.error)
-            else:
-                completion_future.set_result(completion_message.result)
+            # Set completion result
+            # It is expected that a reference to this object is kept by the user when invoking
+            completion_future.set_result(completion_message.result)
 
     async def connect(self):
         """
@@ -96,11 +110,12 @@ class Connection:
         """
         Starts SignalR Connection and Processing
         """
-        # INITIALIZING THE CONNECTION
+        # Initialize connection
         await self.connect()
         loop = asyncio.get_event_loop()
         self.process_task = loop.create_task(self.process())
 
+        # Wait for protocol handshake to be executed
         try:
             await asyncio.wait_for(self.connection_established, self.connection_timeout)
         except asyncio.TimeoutError:
@@ -108,11 +123,15 @@ class Connection:
                                                     f"{self.connection_timeout} seconds timeout")
 
     async def stop(self):
+        """
+        Stops client and closes websocket connection
+        """
         self.stop_event.set()
         if self.process_task and not self.process_task.cancelled():
             self.process_task.cancel()
         if self.ws:
             self.ws.close()
+        await self.on_stop()
 
     async def process(self):
         """
@@ -124,7 +143,7 @@ class Connection:
             try:
                 if self.stop_event.is_set():
                     return
-                # CYCLE AND WAIT FOR DATA
+                # Cycle and wait for data
                 data = await asyncio.wait_for(self.ws.recv(), 0.1)
                 for _char in data:
                     if _char == self.protocol.separator:
@@ -145,7 +164,7 @@ class Connection:
         Executes actions based on message type
         """
         if self.state is SignalRConnectionState.CONNECTING:
-            message: models.HandshakeIncomingMessage = self.protocol.decode_handshake(packet)
+            message: messages.HandshakeIncomingMessage = self.protocol.decode_handshake(packet)
             if message.error is not None:
                 raise exceptions.SignalRConnectionError(message.error)
             else:
@@ -153,15 +172,15 @@ class Connection:
                 self.connection_established.set_result(SignalRConnectionState.ONLINE)
                 await self.on_start()
         else:
-            message: models.BaseSignalRMessage = self.protocol.parse(packet)
-            if message.type is models.SignalRMessageType.INVOCATION:
-                message: models.InvocationMessage
+            message: messages.BaseSignalRMessage = self.protocol.parse(packet)
+            if message.type is messages.SignalRMessageType.INVOCATION:
+                message: messages.InvocationMessage
                 self.logger.info(f"INVOKE: {message}")
-                await self.call_handlers(message)
-            elif message.type is models.SignalRMessageType.COMPLETION:
-                message: models.CompletionMessage
+                await self._call_handlers(message)
+            elif message.type is messages.SignalRMessageType.COMPLETION:
+                message: messages.CompletionMessage
                 self.logger.info(f"COMPLETION: {message}")
-                self.set_completion(message)
+                self._set_completion(message)
 
     async def on_start(self):
         """
@@ -169,25 +188,51 @@ class Connection:
         """
         pass
 
-    async def invoke(self, target: str, *args: typing.Any) -> models.InvokeCompletionFuture:
+    async def on_stop(self):
+        """
+        Called when connection is closed
+        """
+        pass
+
+    async def invoke(self, target: str, *args: typing.Any) -> futures.InvokeCompletionFuture:
         """
         Sends Upstream Invokes with arguments
         """
         # Assemble message
-        message = models.InvocationMessage(invocation_id=str(uuid.uuid4()),
-                                           target=target,
-                                           arguments=list(args))
+        message = messages.InvocationMessage(invocation_id=str(uuid.uuid4()),
+                                             target=target,
+                                             arguments=list(args))
         # Prepare Completion Future
-        invoke_future = models.InvokeCompletionFuture(message.invocation_id)
-        ret = self.register_completion_futures(invoke_future)
+        invoke_future = futures.InvokeCompletionFuture(message.invocation_id)
+        ret: futures.InvokeCompletionFuture = self._register_completion_futures(invoke_future)
         # Encode and send message
         encoded_message = self.protocol.encode(message)
         self.logger.info(f"INVOKE: {encoded_message}")
+        # Send websocket packet
         await self.ws.send(encoded_message)
         return ret
 
     def on(self, event: str, callback: typing.Coroutine):
+        """
+        Register an async handler for a given event.
+        Note: Events may have more than 1 handler and they will be called in the order they were registered
+        """
         if event not in self._handlers:
             self._handlers[event] = [callback]
         else:
             self._handlers[event].append(callback)
+
+    def off(self, event: str, callback: typing.Optional[typing.Coroutine] = None):
+        """
+        Removes one or all event handlers for a given event.
+        Note: If callback is not specified then all handlers will be removed
+        """
+        if event in self._handlers:
+            if callback is None:
+                self.logger.info(f"Removing ALL event handler for {event}")
+                self._handlers.pop(event)
+            else:
+                for handler in self._handlers.get('event', []):
+                    if handler == callback:
+                        self.logger.info(f"Removing an event handler for {event}")
+                        self._handlers[event].remove(handler)

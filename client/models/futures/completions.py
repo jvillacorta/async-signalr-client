@@ -15,6 +15,9 @@ class InvokeCompletionFuture(asyncio.Future):
 
     @property
     def expired(self):
+        """
+        Determines if a payload has expired and references may be disposed
+        """
         if time.time() > self.start_time + self.ttl:
             return True
         return False
