@@ -4,5 +4,6 @@ venv
 .idea
 .pytest_cache
 .pyc
+bin
 build
 __pycache__

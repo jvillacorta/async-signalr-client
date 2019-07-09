@@ -29,6 +29,7 @@ class Connection:
                  connection_timeout: int = 20,
                  log_level: int = logging.DEBUG):
         self.ws = None  # Will hold reference to the websocket client
+        self.process_task = None
         self.url = url
         self.protocol = protocol
         self.connection_timeout = connection_timeout
@@ -36,6 +37,7 @@ class Connection:
         self.establishing_connection_lock = asyncio.Lock()
         self.connection_established = asyncio.Future()  # Future set when connection and negotiation finishes
         self._completion_futures: typing.Dict[str, models.InvokeCompletionFuture] = dict()
+        self.stop_event = asyncio.Event()
 
         # Register handlers
         self._handlers = dict()
@@ -97,12 +99,20 @@ class Connection:
         # INITIALIZING THE CONNECTION
         await self.connect()
         loop = asyncio.get_event_loop()
-        loop.create_task(self.process())
+        self.process_task = loop.create_task(self.process())
+
         try:
             await asyncio.wait_for(self.connection_established, self.connection_timeout)
         except asyncio.TimeoutError:
             raise exceptions.SignalRConnectionError(f"Unable to connect to {self.url} after a"
                                                     f"{self.connection_timeout} seconds timeout")
+
+    async def stop(self):
+        self.stop_event.set()
+        if self.process_task and not self.process_task.cancelled():
+            self.process_task.cancel()
+        if self.ws:
+            self.ws.close()
 
     async def process(self):
         """
@@ -112,6 +122,8 @@ class Connection:
         buffer = StringIO()
         while True:
             try:
+                if self.stop_event.is_set():
+                    return
                 # CYCLE AND WAIT FOR DATA
                 data = await asyncio.wait_for(self.ws.recv(), 0.1)
                 for _char in data:

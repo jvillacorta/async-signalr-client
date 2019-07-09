@@ -30,7 +30,7 @@ setuptools.setup(
         "websockets>=7.0.0"
     ],
     tests_requires=[
-        "pytest==5.0.0",
+        "pytest==4.1.0",
         "pytest-asyncio==0.10.0"
     ]
 )
