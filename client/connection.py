@@ -6,8 +6,9 @@ import websockets
 from enum import Enum
 from io import StringIO
 
+from client import protocols, exceptions
 from client.models import messages, futures
-from client import protocols, models, exceptions
+from client.transports import BaseTransport, WebSocketTransport
 
 
 class SignalRConnectionState(Enum):
@@ -22,18 +23,21 @@ class Connection:
 
     def __init__(self,
                  url: str,
+                 transport: typing.ClassVar[BaseTransport] = WebSocketTransport,
                  protocol: protocols.BaseSignalRProtocol = protocols.JsonProtocol(),
                  connection_timeout: int = 20,
                  log_level: int = logging.DEBUG):
-        self.ws = None  # Will hold reference to the websocket client
-        self.process_task = None
         self.url = url
+        self.transport = transport(url)
         self.protocol = protocol
         self.connection_timeout = connection_timeout
+
+        self.event_queue = asyncio.Queue()
+        self.process_task = None
         self._state = SignalRConnectionState.OFFLINE  # Controls the state of the client
         self.establishing_connection_lock = asyncio.Lock()
         self.connection_established = asyncio.Future()  # Future set when connection and negotiation finishes
-        self._completion_futures: typing.Dict[str, messages.InvokeCompletionFuture] = dict()
+        self._completion_futures: typing.Dict[str, futures.InvokeCompletionFuture] = dict()
         self.stop_event = asyncio.Event()
 
         # Register handlers
@@ -102,9 +106,8 @@ class Connection:
         """
         if self.state == SignalRConnectionState.OFFLINE:
             async with self.establishing_connection_lock:
-                self.ws: websockets.WebSocketClientProtocol = await websockets.connect(self.url)
                 self._state = SignalRConnectionState.CONNECTING
-                await self.ws.send(self.protocol.encode(self.protocol.handshake_message()))
+                await self.transport.connect(self.protocol, self.event_queue)
 
     async def start(self):
         """
@@ -129,8 +132,6 @@ class Connection:
         self.stop_event.set()
         if self.process_task and not self.process_task.cancelled():
             self.process_task.cancel()
-        if self.ws:
-            self.ws.close()
         await self.on_stop()
 
     async def process(self):
@@ -144,7 +145,7 @@ class Connection:
                 if self.stop_event.is_set():
                     return
                 # Cycle and wait for data
-                data = await asyncio.wait_for(self.ws.recv(), 0.1)
+                data = await self.event_queue.get()
                 for _char in data:
                     if _char == self.protocol.separator:
                         loop.create_task(self._execute(buffer.getvalue()))
@@ -208,8 +209,8 @@ class Connection:
         # Encode and send message
         encoded_message = self.protocol.encode(message)
         self.logger.info(f"INVOKE: {encoded_message}")
-        # Send websocket packet
-        await self.ws.send(encoded_message)
+        # Send packet
+        await self.transport.send(encoded_message)
         return ret
 
     def on(self, event: str, callback: typing.Coroutine):

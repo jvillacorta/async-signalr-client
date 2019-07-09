@@ -6,6 +6,7 @@ class BaseSignalRProtocol:
     Base SignalR Protocol class
     - Defines interface that all protocols should implement
     """
+
     def __init__(self, protocol: str, version: int, separator: str):
         self.protocol = protocol
         self.version = version
