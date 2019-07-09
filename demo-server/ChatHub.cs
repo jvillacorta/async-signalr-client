@@ -29,5 +29,30 @@ namespace SignalRSimpleChat
             Console.WriteLine("/chat/RequestBroadcast --> " + message);
             await Clients.All.SendAsync(returnTarget, message);
         }
+
+        public async Task RequestInvokeString(string returnTarget, string sample)
+        {
+            Console.WriteLine("/chat/RequestInvokeString --> " + sample);
+            await Clients.Caller.SendAsync(returnTarget, sample);
+        }
+
+        public async Task RequestInvokeInteger(string returnTarget, int sample)
+        {
+            Console.WriteLine("/chat/RequestInvokeInteger --> " + sample);
+            await Clients.Caller.SendAsync(returnTarget, sample);
+        }
+
+        public async Task RequestInvokeFloat(string returnTarget, float sample)
+        {
+            Console.WriteLine("/chat/RequestInvokeFloat --> " + sample);
+            await Clients.Caller.SendAsync(returnTarget, sample);
+        }
+
+        public async Task RequestInvokeStringArray(string returnTarget, string[] sample)
+        {
+            Console.WriteLine("/chat/RequestInvokeStringArray --> " + sample);
+            await Clients.Caller.SendAsync(returnTarget, sample);
+        }
+
     }
 }

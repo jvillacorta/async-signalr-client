@@ -3,7 +3,6 @@ import random
 import typing
 import asyncio
 import functools
-from pathlib import Path
 from client import SignalRConnectionState, protocols
 from .helper.launch_server import SignalRServerLauncher
 
@@ -40,6 +39,29 @@ class TestAsyncSignalRClient:
         completion_future = await signal_r_client.invoke("InvokeSample", completion_result, 50)
         await completion_future
         assert completion_future.result() == completion_result
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("outgoing_event, incoming_event, sample, expected_type", [
+        ("RequestInvokeString", "callback", str(random.randrange(1000, 9999)), str),
+        ("RequestInvokeInteger", "callback", random.randrange(1000, 9999), int),
+        ("RequestInvokeFloat", "callback", 0.001, float),
+        ("RequestInvokeStringArray", "callback", ['a', 'b', 'c', 'd'], list)
+    ])
+    async def test_json_invoke_string(self, signal_r_client, outgoing_event, incoming_event, sample, expected_type):
+        assert self.server.started is True
+        signal_r_client.protocol = protocols.JsonProtocol()
+        await signal_r_client.start()
+        done = asyncio.Event()
+
+        async def callback(return_sample):
+            assert type(return_sample) == expected_type
+            assert sample == return_sample
+            done.set()
+
+        signal_r_client.on(incoming_event, callback)
+
+        await signal_r_client.invoke(outgoing_event, incoming_event, sample)
+        await asyncio.wait_for(done.wait(), timeout=10)
 
     @classmethod
     def teardown_class(cls):
