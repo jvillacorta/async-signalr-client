@@ -14,6 +14,13 @@ async def main():
     await connection.start()
 ```
 
+**Connection Parameters:**
+- url --> Url of the hub (_Note: use ws(s) scheme for Websocket Transport_)
+- transport --> `client.transport.WebSocketTransport` (Default) or `client.transport.LongPollingTransport`
+- protocol --> `client.protocol.JsonProtocol()` (Default)
+- connection_timeout --> Timeout connection when no ping is received for the given interval in seconds
+- log_level --> Standard library LogLevel  
+
 ### Invoking
 ```python
 from client.connection import Connection
