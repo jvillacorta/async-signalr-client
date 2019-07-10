@@ -3,7 +3,7 @@ import random
 import typing
 import asyncio
 import functools
-from client import SignalRConnectionState, protocols
+from client import SignalRConnectionState, protocols, transports
 from .helper.launch_server import SignalRServerLauncher
 
 
@@ -24,9 +24,14 @@ class TestAsyncSignalRClient:
         cls.server.start()
 
     @pytest.mark.asyncio
-    async def test_json_protocol_negotiation(self, signal_r_client):
+    @pytest.mark.parametrize("transport", [
+        transports.WebSocketTransport,
+        transports.LongPollingTransport
+    ])
+    async def test_json_transport_protocol_negotiation(self, signal_r_client, transport):
         assert self.server.started is True
         signal_r_client.protocol = protocols.JsonProtocol()
+        signal_r_client.transport = transport(signal_r_client.url)
         await signal_r_client.start()
         assert signal_r_client.state == SignalRConnectionState.ONLINE
 

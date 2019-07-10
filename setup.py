@@ -27,9 +27,11 @@ setuptools.setup(
         "Topic :: Internet"
     ],
     install_requires=[
-        "websockets>=7.0.0"
+        "websockets>=7.0.0",
+        "aiohttp==3.0.9"
     ],
     tests_requires=[
+        "requests==2.22.0",
         "pytest==4.1.0",
         "pytest-asyncio==0.10.0"
     ]

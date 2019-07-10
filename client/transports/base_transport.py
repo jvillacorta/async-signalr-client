@@ -1,6 +1,5 @@
-import json
 import asyncio
-import requests
+import aiohttp
 from urllib import parse
 from client.protocols import BaseSignalRProtocol
 from client.exceptions import SignalRConnectionError
@@ -11,6 +10,7 @@ class BaseTransport:
         self.url = url
         self.transport_name = trasport_name
         self.logger = None
+        self.connection_id = None
 
     @staticmethod
     def _assemble_negotiate_url(url: str):
@@ -31,14 +31,19 @@ class BaseTransport:
                                  parsed_url.query,
                                  parsed_url.fragment))
 
-    def validate_transport(self):
-        r = requests.post(self._assemble_negotiate_url(self.url))
-        protocols = json.loads(r.content)
-        if self.logger:
-            self.logger.debug(f"Available transports: {r.content.decode()}")
-        for protocol in protocols.get('availableTransports', []):
-            if self.transport_name == protocol.get('transport', ''):
-                return True
+    async def validate_transport(self):
+        """
+        Ensures transport is compatible with server
+        """
+        async with aiohttp.ClientSession() as session:
+            r = await session.post(self._assemble_negotiate_url(self.url))
+            response = await r.json()
+            if self.logger:
+                self.logger.debug(f"Available transports: {response}")
+            for protocol in response.get('availableTransports', []):
+                if self.transport_name == protocol.get('transport', ''):
+                    self.connection_id = response.get('connectionId', None)
+                    return True
         return False
 
     async def connect(self, protocol: BaseSignalRProtocol, queue: asyncio.Queue):
