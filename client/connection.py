@@ -146,12 +146,15 @@ class Connection:
                     return
                 # Cycle and wait for data
                 data = await self.event_queue.get()
-                for _char in data:
-                    if _char == self.protocol.separator:
-                        loop.create_task(self._execute(buffer.getvalue()))
-                        buffer = StringIO()
-                    else:
-                        buffer.write(_char)
+                if isinstance(data, bytes):
+                    loop.create_task(self._execute(data))
+                else:
+                    for _char in data:
+                        if _char == self.protocol.separator:
+                            loop.create_task(self._execute(buffer.getvalue()))
+                            buffer = StringIO()
+                        else:
+                            buffer.write(_char)
             except asyncio.TimeoutError:
                 pass
             except websockets.ConnectionClosed as e:

@@ -18,7 +18,8 @@ namespace SignalRSimpleChat
         {
             services.AddMvc();
 
-            services.AddSignalR();
+            services.AddSignalR()
+                .AddMessagePackProtocol();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
