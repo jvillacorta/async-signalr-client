@@ -30,6 +30,7 @@ setuptools.setup(
         "requests==2.22.0",
         "pytest==4.1.0",
         "pytest-asyncio==0.10.0",
+        "pytest-html==1.21.1",
         "asynctest==0.13.0"
     ]
 )
