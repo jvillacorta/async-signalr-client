@@ -26,9 +26,9 @@ class LongPollingTransport(BaseTransport):
 
         if self.conn is None:
             self.conn = aiohttp.ClientSession()
-        await self.send(protocol.encode(protocol.handshake_message()))
         loop = asyncio.get_event_loop()
         self.receive_task = loop.create_task(self.receive(queue))
+        await self.send(protocol.encode(protocol.handshake_message()))
 
     async def receive(self, queue: asyncio.Queue):
         """

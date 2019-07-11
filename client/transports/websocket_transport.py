@@ -25,9 +25,9 @@ class WebSocketTransport(BaseTransport):
             raise SignalRConnectionError(f"{self.transport_name} transport not available...")
         if not self.conn:
             self.conn: websockets.WebSocketClientProtocol = await websockets.connect(self.url)
-        await self.send(protocol.encode(protocol.handshake_message()))
         loop = asyncio.get_event_loop()
         self.receive_task = loop.create_task(self.receive(queue))
+        await self.send(protocol.encode(protocol.handshake_message()))
 
     async def receive(self, queue: asyncio.Queue):
         """
