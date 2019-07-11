@@ -1,16 +1,20 @@
 import asyncio
 import aiohttp
+import logging
 from urllib import parse
 from client.protocols import BaseSignalRProtocol
 from client.exceptions import SignalRConnectionError
 
 
 class BaseTransport:
-    def __init__(self, url: str, trasport_name: str):
+    def __init__(self, url: str, transport_name: str):
         self.url = url
-        self.transport_name = trasport_name
-        self.logger = None
+        self.conn = None  # Will hold client connection
+        self.transport_name = transport_name
+        self.logger = logging.getLogger(f"AsyncSignalRClient-{transport_name}Transport")
         self.connection_id = None
+        self.stop_event = asyncio.Event()  # Event to notify that processing should stop
+        self.receive_task = None  # This will hold the reference to the task receiving packets
 
     @staticmethod
     def _assemble_negotiate_url(url: str):

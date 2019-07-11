@@ -14,19 +14,16 @@ class WebSocketTransport(BaseTransport):
 
     def __init__(self, url):
         super().__init__(url, 'WebSockets')
-        self.ws = None  # This will hold the reference to the websocket client
-        self.stop = asyncio.Event()  # Event to notify that processing should stop
-        self.receive_task = None  # This will hold the reference to the task receiving packets
-        self.logger = logging.getLogger("AsyncSignalRClient-WebSocketTransport")
 
     async def connect(self, protocol: BaseSignalRProtocol, queue: asyncio.Queue):
         """
         Sets up the connection with the websocket server, including the protocol negotiation
         """
-        self.stop.clear()
+        self.stop_event.clear()
         if await self.validate_transport() is not True:
             raise SignalRConnectionError(f"{self.transport_name} transport not available...")
-        self.ws: websockets.WebSocketClientProtocol = await websockets.connect(self.url)
+        if not self.conn:
+            self.conn: websockets.WebSocketClientProtocol = await websockets.connect(self.url)
         await self.send(protocol.encode(protocol.handshake_message()))
         loop = asyncio.get_event_loop()
         self.receive_task = loop.create_task(self.receive(queue))
@@ -35,9 +32,9 @@ class WebSocketTransport(BaseTransport):
         """
         Received packets from the websocket server and adds the to the given queue
         """
-        while not self.stop.is_set():
+        while not self.stop_event.is_set():
             try:
-                data = await asyncio.wait_for(self.ws.recv(), 0.1)
+                data = await asyncio.wait_for(self.conn.recv(), 0.1)
                 self.logger.debug(f"Received: {data}")
                 if data:
                     await queue.put(data)
@@ -49,12 +46,12 @@ class WebSocketTransport(BaseTransport):
         Sends packets to the websocket server
         """
         self.logger.debug(f"Sent: {packet}")
-        await self.ws.send(packet)
+        await self.conn.send(packet)
 
     async def stop(self):
         """
         Stops websocket transport connection
         """
-        self.stop.set()
-        if self.ws:
-            self.ws.close()
+        self.stop_event.set()
+        if self.conn:
+            self.conn.close()
