@@ -1,15 +1,11 @@
 import setuptools
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
 
 setuptools.setup(
     name="async-signalr-client",
     author="Jorge Villacorta",
     description="Websocket Python Async Client for the DotNet Code SignalR Protocol",
     keywords="async signalr client",
-    long_description=long_description,
-    long_description_content_type="text/markdown",
     author_email="javm02@gmail.com",
     version="0.0.1",
     license="MIT",

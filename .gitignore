@@ -4,6 +4,8 @@ venv
 .idea
 .pytest_cache
 .pyc
+.tox
+*.egg-info
 bin
 build
 __pycache__
