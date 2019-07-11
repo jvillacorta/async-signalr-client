@@ -1,6 +1,6 @@
 import pytest
-from client.models.messages import InvocationMessage, CompletionMessage, PingMessage
 from client.protocols import JsonProtocol
+from client.models.messages import SignalRMessageType, BaseMessage, InvocationMessage, CompletionMessage, PingMessage
 
 
 @pytest.mark.parametrize("raw, result", [
@@ -37,3 +37,25 @@ def test_handshake_message():
 def test_parse(raw, obj_type):
     protocol = JsonProtocol()
     assert type(protocol.parse(raw)) is obj_type
+
+
+@pytest.mark.parametrize('actual, expected', [
+    ({"test": None}, '{"test": null}'),
+    ({"test": "a"}, '{"test": "a"}'),
+    ({"test": 1}, '{"test": 1}'),
+    ({"test": 0.01}, '{"test": 0.01}'),
+    ({"test": True}, '{"test": true}'),
+    ({"test": ["a", "b", "c"]}, '{"test": ["a", "b", "c"]}'),
+    ({"test": SignalRMessageType.INVOCATION}, '{"test": 1}'),
+    ({"test": SignalRMessageType.INVALID}, '{"test": -1}')
+])
+def test_base_encoder(actual, expected):
+    protocol = JsonProtocol()
+    assert protocol.encode(actual) == expected + protocol.separator
+
+
+def test_invocation_encoder():
+    obj = BaseMessage()
+    setattr(obj, 'invocation_id', 100)
+    protocol = JsonProtocol()
+    assert protocol.encode(obj) == '{"invocationId": 100}' + protocol.separator
