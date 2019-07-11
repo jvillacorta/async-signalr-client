@@ -29,6 +29,7 @@ setuptools.setup(
     tests_requires=[
         "requests==2.22.0",
         "pytest==4.1.0",
-        "pytest-asyncio==0.10.0"
+        "pytest-asyncio==0.10.0",
+        "asynctest==0.13.0"
     ]
 )
