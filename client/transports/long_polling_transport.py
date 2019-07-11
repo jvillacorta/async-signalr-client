@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import aiohttp
 from client.protocols import BaseSignalRProtocol
 from client.exceptions import SignalRConnectionError
@@ -11,6 +10,8 @@ class LongPollingTransport(BaseTransport):
     Implements Long Polling Transport
     Reference: https://github.com/aspnet/AspNetCore/blob/master/src/SignalR/docs/specs/TransportProtocols.md
     """
+    SECURE_SCHEME = 'https'
+    UNSECURE_SCHEME = 'http'
 
     def __init__(self, url):
         super().__init__(url, 'LongPolling')

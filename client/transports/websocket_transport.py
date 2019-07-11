@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import websockets
 from client.protocols import BaseSignalRProtocol
 from client.exceptions import SignalRConnectionError
@@ -11,6 +10,8 @@ class WebSocketTransport(BaseTransport):
     Implements WebSocket Transport
     Reference: https://github.com/aspnet/AspNetCore/blob/master/src/SignalR/docs/specs/TransportProtocols.md
     """
+    SECURE_SCHEME = 'wss'
+    UNSECURE_SCHEME = 'ws'
 
     def __init__(self, url):
         super().__init__(url, 'WebSockets')

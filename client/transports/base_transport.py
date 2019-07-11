@@ -7,8 +7,13 @@ from client.exceptions import SignalRConnectionError
 
 
 class BaseTransport:
-    def __init__(self, url: str, transport_name: str):
-        self.url = url
+    SECURE_SCHEME = 'https'
+    UNSECURE_SCHEME = 'http'
+
+    def __init__(self,
+                 url: str,
+                 transport_name: str):
+        self.url = self.normalize_url_scheme(url)
         self.conn = None  # Will hold client connection
         self.transport_name = transport_name
         self.logger = logging.getLogger(f"AsyncSignalRClient-{transport_name}Transport")
@@ -73,3 +78,39 @@ class BaseTransport:
         This method stops the transport connection
         """
         raise NotImplementedError("Implementation Required")
+
+    SCHEMES = {
+        "NON-SECURE": [
+            "",
+            "http",
+            "ws"
+        ],
+        "SECURE": [
+            "https",
+            "wss"
+        ]
+    }
+
+    def normalize_url_scheme(self, url: str):
+        """
+        This method replaces the url scheme with the expected scheme required for the transport
+        """
+        normalized_url = None
+        parsed_url = parse.urlparse(url)
+        scheme = parsed_url.scheme
+        if self.UNSECURE_SCHEME == scheme or self.SECURE_SCHEME == scheme:
+            normalized_url = url
+        else:
+            for scheme_type, scheme_list in self.SCHEMES.items():
+                for valid_scheme in scheme_list:
+                    if scheme == valid_scheme:
+                        normalized_url = parse.urlunparse((scheme_type == "SECURE" and
+                                                           self.SECURE_SCHEME or self.UNSECURE_SCHEME,
+                                                           parsed_url.netloc,
+                                                           parsed_url.path,
+                                                           parsed_url.params,
+                                                           parsed_url.query,
+                                                           parsed_url.fragment))
+        if normalized_url is None:
+            raise SignalRConnectionError(f"Unable to normalize url: {self.url}")
+        return normalized_url
