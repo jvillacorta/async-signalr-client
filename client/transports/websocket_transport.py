@@ -47,7 +47,10 @@ class WebSocketTransport(BaseTransport):
         Sends packets to the websocket server
         """
         self.logger.debug(f"Sent: {packet}")
-        await self.conn.send(packet)
+        if self.conn and self.receive_task and not self.stop_event.is_set():
+            await self.conn.send(packet)
+        else:
+            raise SignalRConnectionError("Unable to send packet as connection has not been established")
 
     async def stop(self):
         """

@@ -57,7 +57,10 @@ class LongPollingTransport(BaseTransport):
         Sends packets to the server
         """
         self.logger.debug(f"Sent: {packet}")
-        await self.conn.post(self.url, params=dict(id=self.connection_id), data=packet)
+        if self.conn and self.receive_task and not self.stop_event.is_set():
+            await self.conn.post(self.url, params=dict(id=self.connection_id), data=packet)
+        else:
+            raise SignalRConnectionError("Unable to send packet as connection has not been established")
 
     async def stop(self):
         """
