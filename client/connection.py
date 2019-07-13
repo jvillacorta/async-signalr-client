@@ -1,3 +1,4 @@
+import time
 import uuid
 import typing
 import logging
@@ -25,20 +26,29 @@ class Connection:
                  url: str,
                  transport: typing.ClassVar[BaseTransport] = WebSocketTransport,
                  protocol: protocols.BaseSignalRProtocol = protocols.JsonProtocol(),
-                 connection_timeout: int = 20,
+                 establishing_connection_timeout_s: int = 20,
+                 ping_interval_s: int = 60,
                  log_level: int = logging.DEBUG):
         self.url = url
         self.transport = transport(url)
         self.protocol = protocol
-        self.connection_timeout = connection_timeout
+        self.connection_timeout = establishing_connection_timeout_s
+        self.ping_interval_s = ping_interval_s
 
         self.event_queue = asyncio.Queue()
-        self.process_task = None
         self._state = SignalRConnectionState.OFFLINE  # Controls the state of the client
         self.establishing_connection_lock = asyncio.Lock()
         self.connection_established = asyncio.Future()  # Future set when connection and negotiation finishes
         self._completion_futures: typing.Dict[str, futures.InvokeCompletionFuture] = dict()
         self.stop_event = asyncio.Event()
+
+        # Client Tasks
+        self.process_task = None
+        self.keep_alive_task = None
+
+        # Monitoring Variables
+        self._last_ping_sent = None
+        self._last_ping_received = None
 
         # Register handlers
         self._handlers = dict()
@@ -100,6 +110,20 @@ class Connection:
             # It is expected that a reference to this object is kept by the user when invoking
             completion_future.set_result(completion_message.result)
 
+    async def keep_connection_alive(self):
+        """
+        Keeps connection alive by sending ping at a pre-set interval and monitoring incoming messages/pings
+        """
+        loop = asyncio.get_event_loop()
+        self._last_ping_sent = time.time()  # Initialize last ping reference to avoid sending ping on start
+        while True:
+            await asyncio.sleep(1)
+            if self.state == SignalRConnectionState.ONLINE:
+                # Send ping to server in pre-defined intervals
+                if self._last_ping_sent + self.ping_interval_s <= time.time():
+                    self._last_ping_sent = time.time()
+                    loop.create_task(self._ping())
+
     async def connect(self):
         """
         Connects to SignalR Server
@@ -116,7 +140,10 @@ class Connection:
         # Initialize connection
         await self.connect()
         loop = asyncio.get_event_loop()
+        # Starts processing payloads
         self.process_task = loop.create_task(self.process())
+        # Monitors and keeps connection alive
+        self.keep_alive_task = loop.create_task(self.keep_connection_alive())
 
         # Wait for protocol handshake to be executed
         try:
@@ -197,6 +224,16 @@ class Connection:
         Called when connection is closed
         """
         pass
+
+    async def _ping(self):
+        """
+        Sends a ping message to server
+        """
+        message = messages.PingMessage()
+        # Encode and send message
+        encoded_message = self.protocol.encode(message)
+        await self.transport.send(encoded_message)
+        self.logger.debug(f"PING: {encoded_message}")
 
     async def invoke(self, target: str, *args: typing.Any) -> futures.InvokeCompletionFuture:
         """
