@@ -56,7 +56,7 @@ class SignalRServerLauncher:
                 if r.status_code == 200:
                     self.started = True
                     return True
-            except:
+            except requests.exceptions.RequestException:
                 continue
         return False
 

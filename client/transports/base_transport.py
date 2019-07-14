@@ -112,8 +112,8 @@ class BaseTransport:
             for scheme_type, scheme_list in self.SCHEMES.items():
                 for valid_scheme in scheme_list:
                     if scheme == valid_scheme:
-                        normalized_url = parse.urlunparse((scheme_type == "SECURE" and
-                                                           self.SECURE_SCHEME or self.UNSECURE_SCHEME,
+                        desired_scheme = scheme_type == "SECURE" and self.SECURE_SCHEME or self.UNSECURE_SCHEME
+                        normalized_url = parse.urlunparse((desired_scheme,
                                                            parsed_url.netloc,
                                                            parsed_url.path,
                                                            parsed_url.params,

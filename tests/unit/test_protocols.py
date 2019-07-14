@@ -20,19 +20,16 @@ def test_handshake_message():
 
 
 @pytest.mark.parametrize("raw, obj_type", [
-    (
-            "{\"type\": 1, \"target\": \"RequestMessage\", \"arguments\": [\"message\", \"test\", "
-            "\"signalr message\"], \"invocationId\": \"e7899dfc-a5f4-447f-8107-a2d86cf26666\"}",
-            InvocationMessage),
-    (
-            "{\"type\":3,\"invocationId\":\"b6f2cf89-18e8-44ff-a1ff-63abce936960\",\"result\":"
-            "\"signalr completion\"}",
-            CompletionMessage
-    ),
-    (
-            "{\"type\": 6}",
-            PingMessage
-    )
+    ("{\"type\": 1, \"target\": \"RequestMessage\", \"arguments\": [\"message\", \"test\", "
+     "\"signalr message\"], \"invocationId\": \"e7899dfc-a5f4-447f-8107-a2d86cf26666\"}",
+     InvocationMessage),
+    ("{\"type\":3,\"invocationId\":\"b6f2cf89-18e8-44ff-a1ff-63abce936960\",\"result\":"
+     "\"signalr completion\"}",
+     CompletionMessage
+     ),
+    ("{\"type\": 6}",
+     PingMessage
+     )
 ])
 def test_parse(raw, obj_type):
     protocol = JsonProtocol()

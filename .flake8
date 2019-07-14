@@ -1,0 +1,14 @@
+[flake8]
+ignore = E305
+exclude = .git,
+          .gitignore,
+           __pycache__,
+           LICENSE,
+           README.md,
+           requirements.txt,
+           tox.ini,
+           .tox,
+           demo-server,
+           venv,
+           .circleci
+max-line-length = 120
