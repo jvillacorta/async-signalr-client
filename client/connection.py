@@ -131,7 +131,10 @@ class Connection:
         if self.state == SignalRConnectionState.OFFLINE:
             async with self.establishing_connection_lock:
                 self._state = SignalRConnectionState.CONNECTING
-                await self.transport.connect(self.protocol, self.event_queue)
+                await self.transport.connect(self.protocol,
+                                             self.event_queue,
+                                             on_online=self.on_online,
+                                             on_offline=self.on_offline)
 
     async def start(self):
         """
@@ -213,15 +216,27 @@ class Connection:
                 self.logger.info(f"COMPLETION: {message}")
                 self._set_completion(message)
 
+    def on_online(self):
+        """
+        Called when transport connection is opened
+        """
+        pass
+
+    def on_offline(self):
+        """
+        Called when transport connection is closed
+        """
+        pass
+
     async def on_start(self):
         """
-        Called when connection is established
+        Called after connection is established and protocol negotiation is successful
         """
         pass
 
     async def on_stop(self):
         """
-        Called when connection is closed
+        Called when client processing stops
         """
         pass
 

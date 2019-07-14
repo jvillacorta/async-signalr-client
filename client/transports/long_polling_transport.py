@@ -1,3 +1,4 @@
+import typing
 import asyncio
 import aiohttp
 from client.protocols import BaseSignalRProtocol
@@ -15,11 +16,18 @@ class LongPollingTransport(BaseTransport):
 
     def __init__(self, url):
         super().__init__(url, 'LongPolling')
+        self.last_connection_callback = None
 
-    async def connect(self, protocol: BaseSignalRProtocol, queue: asyncio.Queue):
+    async def connect(self,
+                      protocol: BaseSignalRProtocol,
+                      queue: asyncio.Queue,
+                      on_online: typing.Optional[typing.Callable[[None], None]] = None,
+                      on_offline: typing.Optional[typing.Callable[[None], None]] = None):
         """
         Sets up the connection with the server, including the protocol negotiation
         """
+        self.on_online = on_online
+        self.on_offline = on_offline
         self.stop_event.clear()
         if await self.validate_transport() is not True:
             raise SignalRConnectionError(f"{self.transport_name} transport not available...")
@@ -38,6 +46,7 @@ class LongPollingTransport(BaseTransport):
             try:
                 r = await self.conn.get(self.url, params=dict(id=self.connection_id))
                 if r.status == 200:
+                    self.connection_state = 1
                     raw = await r.read()
                     content = raw.decode()
                     if content:
@@ -46,11 +55,25 @@ class LongPollingTransport(BaseTransport):
                 elif r.status == 204:
                     continue
                 else:
+                    self.connection_state = 0
                     raise SignalRConnectionError(f"Server returned unexpected status code: {r.status_code}")
             except asyncio.TimeoutError:
                 pass
             finally:
                 await asyncio.sleep(1)
+
+    def _check_connection(self):
+        """
+        Triggers callbacks when connection state changes
+        """
+        if self.last_connection_callback != self.connection_state:
+            self.last_connection_callback = self.connection_state
+            if self.connection_state == 1:
+                if self.on_online:
+                    self.on_online()
+            else:
+                if self.on_offline:
+                    self.on_offline()
 
     async def send(self, packet):
         """

@@ -1,3 +1,4 @@
+import typing
 import asyncio
 import aiohttp
 import logging
@@ -20,6 +21,9 @@ class BaseTransport:
         self.connection_id = None
         self.stop_event = asyncio.Event()  # Event to notify that processing should stop
         self.receive_task = None  # This will hold the reference to the task receiving packets
+        self.connection_state = None
+        self.on_online = None
+        self.on_offline = None
 
     @staticmethod
     def _assemble_negotiate_url(url: str):
@@ -55,7 +59,11 @@ class BaseTransport:
                     return True
         return False
 
-    async def connect(self, protocol: BaseSignalRProtocol, queue: asyncio.Queue):
+    async def connect(self,
+                      protocol: BaseSignalRProtocol,
+                      queue: asyncio.Queue,
+                      on_online: typing.Optional[typing.Callable[[None], None]] = None,
+                      on_offline: typing.Optional[typing.Callable[[None], None]] = None):
         """
         This method connects the client with the server using the selected transport
         """
