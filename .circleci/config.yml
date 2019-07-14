@@ -32,6 +32,13 @@ jobs:
           key: v1-dependencies-{{ checksum "requirements.txt" }}
 
       - run:
+          name: python linting
+          command: |
+            . venv/bin/activate
+            pip install flake8
+            flake8 .
+
+      - run:
           name: run tests
           command: |
             . venv/bin/activate
