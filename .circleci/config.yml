@@ -51,7 +51,7 @@ jobs:
           path: test-reports
           destination: test-reports
 
-  Python_3.7:
+  python_3.7:
     docker:
       - image: circleci/python:3.7
 
