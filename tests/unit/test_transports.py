@@ -1,7 +1,8 @@
 import pytest
 import asyncio
 import aiohttp
-from asynctest import CoroutineMock
+import websockets
+from asynctest import CoroutineMock, MagicMock
 from client.protocols import BaseSignalRProtocol
 from client.exceptions import SignalRConnectionError
 from client.transports import LongPollingTransport, WebSocketTransport
@@ -78,11 +79,12 @@ async def test_send_long_polling():
 
 
 @pytest.mark.asyncio
-async def test_send_long_polling():
+async def test_send_websockets():
     instance = WebSocketTransport('http://foo.bar:5000')
     instance.connection_id = 'abc'
-    instance.conn = CoroutineMock(aiohttp.ClientSession())
-    instance.conn.send = CoroutineMock(aiohttp.ClientSession().post)
+    instance.conn = CoroutineMock(websockets.client.WebSocketClientProtocol)
+    instance.conn.send = CoroutineMock()
+    instance.conn.state = MagicMock(return_value=websockets.protocol.State.OPEN)
     instance.receive_task = CoroutineMock()
     packet = 100
     await instance.send(packet)
