@@ -43,7 +43,7 @@ jobs:
           command: |
             . venv/bin/activate
             pip install coverage
-            coverage --source ./client -m pytest ./tests/unit --html=./test-reports/result.html --junitxml test-reports/junit.xml
+            coverage -m pytest ./tests/unit --html=./test-reports/result.html --junitxml test-reports/junit.xml
             coverage report
             coverage html -d ./test-reports/coverage
 
