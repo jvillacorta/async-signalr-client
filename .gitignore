@@ -1,4 +1,5 @@
 venv
+.coverage
 .vs
 .vscode
 .idea

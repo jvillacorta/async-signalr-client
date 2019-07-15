@@ -42,7 +42,10 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
-            pytest ./tests/unit --html=./test-reports/result.html --junitxml test-reports/junit.xml
+            pip install coverage
+            coverage --source ./client -m pytest ./tests/unit --html=./test-reports/result.html --junitxml test-reports/junit.xml
+            coverage report
+            coverage html -d ./test-reports/coverage
 
       - store_artifacts:
           path: test-reports
