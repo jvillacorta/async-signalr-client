@@ -1,4 +1,4 @@
-from client.models import messages
+from async_signalr_client.models import messages
 
 
 class BaseSignalRProtocol:

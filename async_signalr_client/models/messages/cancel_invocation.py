@@ -1,5 +1,5 @@
-from client.models.messages.base import BaseSignalRMessage
-from client.models.messages.types import SignalRMessageType
+from async_signalr_client.models.messages.base import BaseSignalRMessage
+from async_signalr_client.models.messages.types import SignalRMessageType
 
 
 class CancelInvocationMessage(BaseSignalRMessage):

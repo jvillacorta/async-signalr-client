@@ -3,7 +3,7 @@ import random
 import typing
 import asyncio
 import functools
-from client import SignalRConnectionState, protocols, transports
+from async_signalr_client import SignalRConnectionState, protocols, transports
 from .helper.launch_server import SignalRServerLauncher
 
 

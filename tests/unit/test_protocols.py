@@ -1,6 +1,6 @@
 import pytest
-from client.protocols import JsonProtocol
-from client.models.messages import SignalRMessageType, BaseMessage, InvocationMessage, CompletionMessage, PingMessage
+from async_signalr_client.protocols import JsonProtocol
+from async_signalr_client.models.messages import SignalRMessageType, BaseMessage, InvocationMessage, CompletionMessage, PingMessage
 
 
 @pytest.mark.parametrize("raw, result", [

@@ -1,9 +1,9 @@
 import typing
 import asyncio
 import websockets
-from client.protocols import BaseSignalRProtocol
-from client.exceptions import SignalRConnectionError
-from client.transports.base_transport import BaseTransport
+from async_signalr_client.protocols import BaseSignalRProtocol
+from async_signalr_client.exceptions import SignalRConnectionError
+from async_signalr_client.transports.base_transport import BaseTransport
 
 
 class WebSocketTransport(BaseTransport):

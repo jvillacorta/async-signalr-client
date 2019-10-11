@@ -1,6 +1,6 @@
 class BaseSignalRClientError(Exception):
     """
-    Base client exception class, all client exceptions will subclass from this
+    Base async_signalr_client exception class, all async_signalr_client exceptions will subclass from this
     """
     pass
 

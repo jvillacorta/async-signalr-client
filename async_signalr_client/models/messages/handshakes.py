@@ -1,4 +1,4 @@
-from client.models.messages.base import BaseMessage
+from async_signalr_client.models.messages.base import BaseMessage
 
 
 class HandshakeIncomingMessage(BaseMessage):

@@ -7,9 +7,9 @@ import websockets
 from enum import Enum
 from io import StringIO
 
-from client import protocols, exceptions
-from client.models import messages, futures
-from client.transports import BaseTransport, WebSocketTransport
+from async_signalr_client import protocols, exceptions
+from async_signalr_client.models import messages, futures
+from async_signalr_client.transports import BaseTransport, WebSocketTransport
 
 
 class SignalRConnectionState(Enum):
@@ -36,7 +36,7 @@ class Connection:
         self.ping_interval_s = ping_interval_s
 
         self.event_queue = asyncio.Queue()
-        self._state = SignalRConnectionState.OFFLINE  # Controls the state of the client
+        self._state = SignalRConnectionState.OFFLINE  # Controls the state of the async_signalr_client
         self.establishing_connection_lock = asyncio.Lock()
         self.connection_established = asyncio.Future()  # Future set when connection and negotiation finishes
         self._completion_futures: typing.Dict[str, futures.InvokeCompletionFuture] = dict()
@@ -66,13 +66,13 @@ class Connection:
     @property
     def state(self) -> SignalRConnectionState:
         """
-        Current client state
+        Current async_signalr_client state
         """
         return self._state
 
     async def _call_handlers(self, message: messages.InvocationMessage):
         """
-        Dispatches a task for each event handler registered to the client
+        Dispatches a task for each event handler registered to the async_signalr_client
         """
         handlers = self._handlers.get(message.target)
         if not handlers:
@@ -157,7 +157,7 @@ class Connection:
 
     async def stop(self):
         """
-        Stops client and closes websocket connection
+        Stops async_signalr_client and closes websocket connection
         """
         self.stop_event.set()
         if self.process_task and not self.process_task.cancelled():
@@ -236,7 +236,7 @@ class Connection:
 
     async def on_stop(self):
         """
-        Called when client processing stops
+        Called when async_signalr_client processing stops
         """
         pass
 

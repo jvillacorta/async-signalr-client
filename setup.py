@@ -2,20 +2,20 @@ import setuptools
 
 
 setuptools.setup(
-    name="async-signalr-client",
+    name="async-signalr-async_signalr_client",
     author="Jorge Villacorta",
     description="Websocket Python Async Client for the DotNet Code SignalR Protocol",
-    keywords="async signalr client",
+    keywords="async signalr async_signalr_client",
     author_email="javm02@gmail.com",
     version="0.0.1",
     license="MIT",
     url="https://github.com/jvillacorta/async-signalr-client",
     packages=[
-        "client",
-        "client.models",
-        "client.models.futures",
-        "client.models.messages",
-        "client.protocols"
+        "async_signalr_client",
+        "async_signalr_client.models",
+        "async_signalr_client.models.futures",
+        "async_signalr_client.models.messages",
+        "async_signalr_client.protocols"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",

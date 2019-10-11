@@ -1,6 +1,6 @@
 import json
-from client.models import messages
-from client import protocols, exceptions
+from async_signalr_client.models import messages
+from async_signalr_client import protocols, exceptions
 
 
 class JsonEncoder(json.JSONEncoder):
@@ -58,7 +58,7 @@ class JsonProtocol(protocols.BaseSignalRProtocol):
 
     def parse(self, raw) -> messages.BaseSignalRMessage:
         """
-        Parse downstream packets into client models
+        Parse downstream packets into async_signalr_client models
         """
         # Convert packet into a python object
         decoded_payload = self.decode(raw)
@@ -99,6 +99,6 @@ class JsonProtocol(protocols.BaseSignalRProtocol):
 
     def encode(self, message: messages.BaseMessage):
         """
-        Converts a client message into a JSON string with a separation character
+        Converts a async_signalr_client message into a JSON string with a separation character
         """
         return JsonEncoder().encode(message) + self.separator

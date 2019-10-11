@@ -5,7 +5,7 @@ This library implements the SignalR JSON protocol using asyncio.  Note: Streamin
 
 ### Launching the Client
 ```python
-from client.connection import Connection
+from async_signalr_client.connection import Connection
 
 async def main():
     # This will create the connection instance but will not launch any connection
@@ -23,7 +23,7 @@ async def main():
 
 ### Invoking
 ```python
-from client.connection import Connection
+from async_signalr_client.connection import Connection
 
 async def main():
     connection = Connection("ws://127.0.0.1:5000/chat")
@@ -34,8 +34,8 @@ async def main():
 
 ### Invoke Completions
 ```python
-from client.connection import Connection
-from client.exceptions import SignalRCompletionServerError
+from async_signalr_client.connection import Connection
+from async_signalr_client.exceptions import SignalRCompletionServerError
 
 async def main():
     connection = Connection("ws://127.0.0.1:5000/chat")
@@ -56,7 +56,7 @@ async def main():
 ### Receiving a message
 ```python
 import asyncio
-from client.connection import Connection
+from async_signalr_client.connection import Connection
 
 class ChatClient(Connection):
 

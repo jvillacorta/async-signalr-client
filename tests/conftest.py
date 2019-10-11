@@ -1,6 +1,6 @@
 import pytest
 import asyncio
-from client import Connection
+from async_signalr_client import Connection
 
 
 @pytest.yield_fixture(scope='session')

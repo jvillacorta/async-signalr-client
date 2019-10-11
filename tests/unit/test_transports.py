@@ -3,9 +3,9 @@ import asyncio
 import aiohttp
 import websockets
 from asynctest import CoroutineMock, MagicMock
-from client.protocols import BaseSignalRProtocol
-from client.exceptions import SignalRConnectionError
-from client.transports import LongPollingTransport, WebSocketTransport
+from async_signalr_client.protocols import BaseSignalRProtocol
+from async_signalr_client.exceptions import SignalRConnectionError
+from async_signalr_client.transports import LongPollingTransport, WebSocketTransport
 
 
 @pytest.mark.parametrize("transport, actual_url, expected_url", [

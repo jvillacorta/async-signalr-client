@@ -3,8 +3,8 @@ import asyncio
 import aiohttp
 import logging
 from urllib import parse
-from client.protocols import BaseSignalRProtocol
-from client.exceptions import SignalRConnectionError
+from async_signalr_client.protocols import BaseSignalRProtocol
+from async_signalr_client.exceptions import SignalRConnectionError
 
 
 class BaseTransport:
@@ -15,7 +15,7 @@ class BaseTransport:
                  url: str,
                  transport_name: str):
         self.url = self.normalize_url_scheme(url)
-        self.conn = None  # Will hold client connection
+        self.conn = None  # Will hold async_signalr_client connection
         self.transport_name = transport_name
         self.logger = logging.getLogger(f"AsyncSignalRClient-{transport_name}Transport")
         self.connection_id = None
@@ -65,7 +65,7 @@ class BaseTransport:
                       on_online: typing.Optional[typing.Callable[[None], None]] = None,
                       on_offline: typing.Optional[typing.Callable[[None], None]] = None):
         """
-        This method connects the client with the server using the selected transport
+        This method connects the async_signalr_client with the server using the selected transport
         """
         raise NotImplementedError("Implementation Required")
 

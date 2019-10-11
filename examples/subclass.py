@@ -1,6 +1,6 @@
 import logging
 import asyncio
-from client.connection import Connection
+from async_signalr_client.connection import Connection
 
 logging.basicConfig(level=logging.DEBUG)
 
