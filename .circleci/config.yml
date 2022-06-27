@@ -6,7 +6,7 @@ version: 2
 jobs:
   python_3.9:
     docker:
-      - image: circleci/python:3.9
+      - image: cimg/python:3.9
 
     working_directory: ~/repo
 
@@ -43,7 +43,7 @@ jobs:
           command: |
             . venv/bin/activate
             pip install coverage
-            coverage run --source ./client -m pytest ./tests/unit --html=./test-reports/result.html --junitxml test-reports/junit.xml
+            coverage run -m pytest ./tests/unit --html=./test-reports/result.html --junitxml test-reports/junit.xml
             coverage report
             coverage html -d ./test-reports/coverage
 
@@ -53,7 +53,7 @@ jobs:
 
   python_3.10:
     docker:
-      - image: circleci/python:3.10
+      - image: cimg/python:3.10
 
     working_directory: ~/repo
     steps: *steps
