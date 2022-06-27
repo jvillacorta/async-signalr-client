@@ -1,6 +1,6 @@
 # Library
 websockets>=7.0.0
-aiohttp==3.0.9
+aiohttp==3.8.1
 # Tests
 requests==2.22.0
 pytest==4.1.0
