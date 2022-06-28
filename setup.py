@@ -7,7 +7,7 @@ setuptools.setup(
     description="Websocket Python Async Client for the DotNet Code SignalR Protocol",
     keywords="async signalr async_signalr_client",
     author_email="javm02@gmail.com",
-    version="0.0.1",
+    version="0.1.0",
     license="MIT",
     url="https://github.com/jvillacorta/async-signalr-client",
     packages=[
@@ -24,13 +24,13 @@ setuptools.setup(
     ],
     install_requires=[
         "websockets>=7.0.0",
-        "aiohttp==3.0.9"
+        "aiohttp==3.8.1"
     ],
     tests_requires=[
         "requests==2.22.0",
-        "pytest==4.1.0",
-        "pytest-asyncio==0.10.0",
-        "pytest-html==1.21.1",
-        "asynctest==0.13.0"
+        "pytest==7.1.2",
+        "pytest-asyncio==0.18.3",
+        "pytest-aiohttp==1.0.4",
+        "pytest-html==1.21.1"
     ]
 )
