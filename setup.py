@@ -24,7 +24,7 @@ setuptools.setup(
     ],
     install_requires=[
         "websockets>=7.0.0",
-        "aiohttp==3.8.1"
+        "aiohttp==3.8.5"
     ],
     tests_requires=[
         "requests==2.22.0",
